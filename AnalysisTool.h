@@ -1,0 +1,33 @@
+#ifndef ANALYSIS_H
+#define ANALYSIS_H
+#include<iostream>
+#include<fstream>
+#include<vector>
+#include"TFile.h"
+#include"TDirectoryFile.h"
+#include"TH1.h"
+#include"TH2.h"
+#include"TString.h"
+
+class AnalysisTool{
+ public:
+  AnalysisTool(TString, TString, TString);
+  ~AnalysisTool(){};
+  void GetEtaPlot();
+  void GetGenEtaPlot();
+  void GetGenEtaPt();
+ private:
+  void ParseInfo(TString,TString,TString);
+  vector<TString> ParseStuff(TString);
+  void GetNmergeHistos(); 
+
+  vector<TString> Histos1D;
+  vector<TString> Histos2D;
+  vector<TString> Samples;
+
+  vector<TH1F*> hHistos1D;
+  vector<TH2F*> hHistos2D;
+};
+
+
+#endif

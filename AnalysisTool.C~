@@ -1,0 +1,126 @@
+#include"AnalysisTool.h"
+
+AnalysisTool::AnalysisTool(TString H1, TString H2, TString samples){
+  
+  // Getting info
+  ParseInfo(H1,H2,samples);
+  GetNmergeHistos();
+
+}
+
+void AnalysisTool::ParseInfo(TString H1, TString H2, TString sample){
+  
+  Histos1D = ParseStuff(H1);
+  Histos2D = ParseStuff(H2);
+  Samples = ParseStuff(sample);
+ 
+}
+
+vector<TString> AnalysisTool::ParseStuff(TString filename){
+  
+  vector<TString> Content;
+  TString tmpString;
+  ifstream File(filename);
+  if (File.is_open()){
+  
+    while (File){
+      File >> tmpString;
+      if (tmpString == "") continue;
+      if (tmpString.Contains("#")) continue;
+      Content.push_back(tmpString);
+    }
+  }  
+  else{
+    cout << "[E]: Unable to open " << filename << endl;
+  }
+
+  if (Content.size() == 0) {
+    cout << "[W]: " << filename << " is empty " << endl;
+  }
+
+  return Content;
+}
+
+void AnalysisTool::GetNmergeHistos(){
+  TFile* _file0 = TFile::Open("/nfs/fanae/user/sscruz/MPAF/workdir/root/charge_flip/templateChargeFlip.root");
+  TDirectoryFile* _Histo = 0;
+  
+  TH1F* tmp;
+  TH1F* Histo1D;
+
+  for (unsigned int k = 0; k<Histos1D.size(); k++){
+    _Histo = (TDirectoryFile*)_file0->Get(Histos1D[k]);
+    for (unsigned int sample = 0; sample < Samples.size(); sample++){
+    
+      tmp = (TH1F*) _Histo->Get(Samples[sample]);
+      if (sample == 0) Histo1D = tmp; 
+      else  Histo1D->Add(tmp);
+    }
+    hHistos1D.push_back(Histo1D);
+  }
+  
+
+  TH2F* tmp2;
+  TH2F* Histo2D;
+  for (unsigned int k = 0; k<Histos2D.size(); k++){
+    _Histo = (TDirectoryFile*)_file0->Get(Histos2D[k]);
+    for (unsigned int sample = 0; sample < Samples.size(); sample++){
+      tmp2 = (TH2F*) _Histo->Get(Samples[sample]);
+      if (sample == 0) Histo2D = tmp2;
+      else Histo2D->Add(tmp2);
+    }
+    hHistos2D.push_back(Histo2D);
+  }
+}
+
+
+void AnalysisTool::GetGenEtaPlot(){
+  TH1F* MisMeasured  = hHistos1D[0];
+  TH1F* GoodMeasured = hHistos1D[1];
+  
+  GoodMeasured->Add(MisMeasured);
+  MisMeasured->Divide(GoodMeasured);
+  MisMeasured->GetXaxis()->SetTitle("#eta");
+  MisMeasured->GetYaxis()->SetTitle("p^{charge-flip} (gen info)");
+
+  MisMeasured->Draw();
+  return;
+  
+}
+
+void AnalysisTool::GetEtaPlot(){
+  TH2F* OS = hHistos2D[0];
+  TH2F* SS = hHistos2D[1];
+  TH1D* hProbability = OS->ProjectionX();
+  Int_t nBins = hProbability->GetNbinsX();
+
+  hProbability->Reset();
+
+  for (Int_t k=1; k<nBins+1;k++){
+    Int_t binOS = OS->GetBin(k,k);
+    Int_t binSS = SS->GetBin(k,k);
+    cout << SS->GetBinContent(binSS) << " " << OS->GetBinContent(binOS) <<  endl;
+    hProbability->SetBinContent(k,SS->GetBinContent(binSS)/(2*OS->GetBinContent(binOS)));
+  }
+
+  hProbability->GetXaxis()->SetTitle("#eta");
+  hProbability->GetYaxis()->SetTitle("p^{charge-flip} (no gen info)");
+
+  hProbability->Draw();
+  return;
+
+}
+
+void AnalysisTool::GetGenEtaPt(){
+  TH2F* GoodMeasured = hHistos2D[2];
+  TH2F* MisMeasured = hHistos2D[3];
+  GoodMeasured->Add(MisMeasured);
+  MisMeasured->Divide(GoodMeasured);
+
+  MisMeasured->GetYaxis()->SetTitle("p_{T} [GeV]");
+  MisMeasured->GetXaxis()->SetTitle("#eta");
+  MisMeasured->GetZaxis()->SetTitle("p^{charge-flip} (gen info)");
+  MisMeasured->Draw("colz text e");
+  return;
+  
+}
